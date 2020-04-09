@@ -98,9 +98,11 @@ clean:
 
 target/$(BINARY32): $(SOURCES)
 	GOARCH=386 $(GO) build $(BUILD_FLAGS) -o $@
+	GOARCH=arm64 $(GO) build $(BUILD_FLAGS) -o $@arm64
 
 target/$(BINARY64): $(SOURCES)
 	GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o $@
+	GOARCH=arm64 $(GO) build $(BUILD_FLAGS) -o $@arm64
 
 # https://github.com/golang/go/wiki/GoArm
 target/$(BINARYARM5): $(SOURCES)
@@ -117,6 +119,7 @@ target/$(BINARYARM8): $(SOURCES)
 
 target/$(BINARYPPC64LE): $(SOURCES)
 	GOARCH=ppc64le $(GO) build $(BUILD_FLAGS) -o $@
+	
 
 bin/fzf: target/$(BINARY) | bin
 	cp -f target/$(BINARY) bin/fzf

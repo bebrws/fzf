@@ -221,7 +221,7 @@ type Options struct {
 	Version     bool
 }
 
-func defaultOptions() *Options {
+func DefaultOptions() *Options {
 	return &Options{
 		Fuzzy:       true,
 		FuzzyAlgo:   algo.FuzzyMatchV2,
@@ -1049,7 +1049,7 @@ func parseMargin(margin string) [4]sizeSpec {
 	return defaultMargin()
 }
 
-func parseOptions(opts *Options, allArgs []string) {
+func ParseOptionsArgs(opts *Options, allArgs []string) {
 	var historyMax int
 	if opts.History == nil {
 		historyMax = defaultHistoryMax
@@ -1417,7 +1417,7 @@ func validateSign(sign string, signOptName string) error {
 	return nil
 }
 
-func postProcessOptions(opts *Options) {
+func PostProcessOptions(opts *Options) {
 	if !tui.IsLightRendererSupported() && opts.Height.size > 0 {
 		errorExit("--height option is currently not supported on this platform")
 	}
@@ -1457,17 +1457,17 @@ func postProcessOptions(opts *Options) {
 
 // ParseOptions parses command-line options
 func ParseOptions() *Options {
-	opts := defaultOptions()
+	opts := DefaultOptions()
 
 	// Options from Env var
 	words, _ := shellwords.Parse(os.Getenv("FZF_DEFAULT_OPTS"))
 	if len(words) > 0 {
-		parseOptions(opts, words)
+		ParseOptionsArgs(opts, words)
 	}
 
 	// Options from command-line arguments
-	parseOptions(opts, os.Args[1:])
+	ParseOptionsArgs(opts, os.Args[1:])
 
-	postProcessOptions(opts)
+	PostProcessOptions(opts)
 	return opts
 }
