@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bash ./clean.sh
+#bash ./clean.sh
 
 # check THEOS settings
 if [ -z "$THEOS" ]; then
@@ -14,7 +14,7 @@ if [ ! -d "$THEOS/lib" ]; then
 fi
 
 # set temp working dir
-rm -rf .theos_building
+#rm -rf .theos_building
 mkdir -p .theos_building
 
 ######################################################
@@ -29,8 +29,6 @@ export GOARCH=arm64
 export GOOS=darwin
 export CC=$PWD/clangwrap.sh
 export CXX=$PWD/clangwrap.sh
-export CGO_CFLAGS="-isysroot  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=12.0" 
-export CGO_LDFLAGS="-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=12.0" 
 
 
 echo "building darwin/arm64 static lib"
@@ -41,55 +39,53 @@ if [ ! -f ./.theos_building/libgolang_arm64.a ]; then
 fi
 
 # # build armv7
-# export CGO_ENABLED=1
-# export GOARCH=arm
-# export GOARM=7
-# export CC=$PWD/clangwrap.sh
-# export CXX=$PWD/clangwrap.sh
-# export CGO_CFLAGS="-isysroot  /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=12.0" 
-# export CGO_LDFLAGS="-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=12.0" 
+export CGO_ENABLED=1
+export GOARCH=arm
+export GOARM=7
+export CC=$PWD/clangwrap.sh
+export CXX=$PWD/clangwrap.sh
 
 # echo "building darwin/armv7 static lib"
-# go build -buildmode=c-archive -o ./.theos_building/libgolang_armv7.a
-# if [ ! -f ./.theos_building/libgolang_armv7.a ]; then
-#     echo "failed to build darwin/armv7 static lib!"
-#     exit 1
-# fi
-
-# # Make universal library
-# cd ./.theos_building/
-# echo "joining darwin/arm64 & darwin/armv7 static libs to a universal one"
-# lipo libgolang_arm64.a libgolang_armv7.a -create -output libgolanguniversal.a
-# #cp libgolang_arm64.a  libgolanguniversal.a
-# rm libgolang_arm64.a libgolang_armv7.a
-# rm libgolang_arm64.h libgolang_armv7.h
-
-cd ./.theos_building/
-cp libgolang_arm64.a  libgolanguniversal.a
-if [ ! -f libgolanguniversal.a ]; then
-    echo "failed to build the universal lib!"
+go build -buildmode=c-archive -o ./.theos_building/libgolang_armv7.a
+if [ ! -f ./.theos_building/libgolang_armv7.a ]; then
+    echo "failed to build darwin/armv7 static lib!"
     exit 1
 fi
+
+# # Make universal library
+cd ./.theos_building/
+echo "joining darwin/arm64 & darwin/armv7 static libs to a universal one"
+lipo libgolang_arm64.a libgolang_armv7.a -create -output libgolanguniversal.a
+#cp libgolang_arm64.a  libgolanguniversal.a
+rm libgolang_arm64.a libgolang_armv7.a
+rm libgolang_arm64.h libgolang_armv7.h
+
+# cd ./.theos_building/
+# cp libgolang_arm64.a  libgolanguniversal.a
+# if [ ! -f libgolanguniversal.a ]; then
+#     echo "failed to build the universal lib!"
+#     exit 1
+# fi
 
 ######################################################
 # build debian binary for iOS using theos
 ######################################################
 
 # move static lib to theos lib folder
-# currentTime=$(date +%s)
-# staticLibFileName="libgolang"$currentTime".a"
-# staticLibLdFlags="-lgolang"$currentTime
-# cp libgolang.a $THEOS"/lib/"$staticLibFileName
-
 currentTime=$(date +%s)
-staticLibFileName="libfzfgolang.a"
-staticLibLdFlags="-lfzfgolang"
+staticLibFileName="libgolang"$currentTime".a"
+staticLibLdFlags="-lgolang"$currentTime
 cp libgolanguniversal.a $THEOS"/lib/"$staticLibFileName
+
+# currentTime=$(date +%s)
+# staticLibFileName="libfzfgolang.a"
+# staticLibLdFlags="-lfzfgolang"
+# cp libgolanguniversal.a $THEOS"/lib/"$staticLibFileName
 
 # Makefile of .deb package
 echo 'include $(THEOS)/makefiles/common.mk
 
-export ARCHS = arm64
+export ARCHS = armv7 arm64
 
 TOOL_NAME = fzf
 fzf_FILES = main.mm
@@ -118,16 +114,18 @@ cp ../main.mm ../main.h ./
 echo "building theos package"
 make package
 
-######################################################
-# extract the single program from deb package
-######################################################
+# ######################################################
+# # extract the single program from deb package
+# ######################################################
 echo "extracting executable file from .deb package"
 mkdir extracted_deb
+echo "Debs in `pwd` packages"
 dpkg -x packages/*.deb ./extracted_deb
-mkdir ../bin
-find ./extracted_deb -name "golangtool"|while read line; do cp $line ../bin/cmd; done
+cp packages/*.deb ../
+mkdir -p ../bin
+find ./extracted_deb -name "golangtool"|while read line; do cp $line ../bin/fzf-ios; done
 
-#remove temp path
+# #remove temp path
 cd ..
-rm -rf ./.theos_building/
+# #rm -rf ./.theos_building/
 rm $THEOS"/lib/libgolang"*".a"
